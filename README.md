@@ -93,6 +93,19 @@ Adicionalmente por temas de gobernanza y ética BBVA deberá ser responsable del
 | **Escalabilidad Vertical**<br> | Aumentar la capacidad de cómputo (CPU y memoria RAM) dentro de una misma instancia. | • **Configuración A:** 1 vCPU / 2 GiB RAM *(Consumo mínimo)*<br>• **Configuración B:** 2 vCPU / 4 GiB RAM *(Equilibrio rendimiento/costo)*<br>• **Configuración C:** 4 vCPU / 8 GiB RAM *(Cargas de alta intensidad)* | Se elegirá la configuración menor que mantenga la RAM en límites seguros y cumpla la latencia objetivo bajo la concurrencia esperada. |
 | **Escalabilidad Horizontal**<br> | Crear más instancias al subir la demanda y reducirlas cuando baja, usando señales de CPU y concurrencia en Cloud Run. | • **Concurrencia por instancia:** 1, 4, 8 y 16 solicitudes.<br>• **Instancias mínimas:** 0 en pruebas; evaluar 1 en producción si el *cold start* afecta el SLA.<br>• **Instancias máximas:** Límite inicial de 10.<br>• **Pruebas:** Carga progresiva y picos repentinos. |Debe ajustarse según la tasa de solicitudes, duración de inferencia, presupuesto y tolerancia a errores. |
 
+| Configuración | Latencia p95 simulada | Throughput simulado | Memoria máxima | ¿Cumple meta / SLA? |
+| :--- | :--- | :--- | :--- | :--- |
+| **1 vCPU / 2 GiB** | 680 ms | 14.6 req/s | 79 % | No |
+| **2 vCPU / 4 GiB** | 420 ms | 17.8 req/s | 68 % | Sí, en simulación |
+| **4 vCPU / 8 GiB** | 295 ms | 19.7 req/s | 59 % | Sí, en simulación |
+
+| Concurrencia configurada | Latencia p95 simulada | Throughput simulado | Interpretación |
+| :--- | :--- | :--- | :--- |
+| **1** | 260 ms | 3.5 req/s | Baja contención |
+| **4** | 310 ms | 11.5 req/s | Mayor aprovechamiento |
+| **8** | 420 ms | 17.8 req/s | Equilibrio preliminar |
+| **16** | 760 ms | 20.5 req/s | Saturación y degradación de latencia |
+
 ### Optimización de costos.
 
 Con el objetivo de garantizar una operación eficiente, escalable y sostenible de las soluciones de IA en BBVA, se propone una estrategia de optimización orientada a mejorar el rendimiento de los modelos, asegurar la continuidad operativa y gestionar eficientemente los recursos tecnológicos, manteniendo los niveles de servicio (SLA), los estándares de seguridad y los lineamientos de gobierno tecnológico del Banco.
@@ -145,6 +158,27 @@ El costo de inferencia dependerá de la CPU y memoria, el tiempo de ejecución, 
 * Número de consultas mensuales estimadas: 20 consultas
 * Total de consultas estimadas: 1,000,000 
 
+| Variable | Demanda baja | Demanda media | Demanda alta |
+| :--- | :--- | :--- | :--- |
+| **Encuestas mensuales** | 10,000 | 50,000 | 100,000 |
+| **Textos por encuesta** | 2 | 2 | 2 |
+| **Procesamientos por texto** | 1 | 1 | 2 |
+| **Inferencias mensuales** | 20,000 | 100,000 | 400,000 |
+| **CPU por instancia** | 1 vCPU | 2 vCPU | 4 vCPU |
+| **Memoria por instancia** | 2 GiB | 4 GiB | 8 GiB |
+| **Instancias mínimas** | 0 | 0 | 1 |
+| **Instancias máximas propuestas** | 3 | 5 | 10 |
+
+| Componente | Baja | Media | Alta |
+| :--- | :--- | :--- | :--- |
+| **CPU de inferencia** | \$120 | \$720 | \$2,900 |
+| **Memoria de inferencia** | \$60 | \$360 | \$1,450 |
+| **Almacenamiento de imágenes** | \$20 | \$50 | \$100 |
+| **Registros y monitoreo** | \$30 | \$100 | \$250 |
+| **Red y otros servicios** | \$20 | \$70 | \$300 |
+| **Total mensual** | **\$250** | **\$1,300** | **\$5,000** |
+
+
 <img width="1114" height="944" alt="image_91d296d9" src="https://github.com/user-attachments/assets/2557218e-c725-43d9-8c51-5fe890767fcc" />
 
 Sabremos que el rediseño funciona y está listo cuando logre equilibrar cuatro cosas al mismo tiempo: responder rápido, mantenerse siempre disponible, conservar su nivel de acierto y cuidar el costo por cada consulta.
@@ -163,6 +197,14 @@ La auditoría busca determinar si la solución puede procesar textos de forma co
 | **3. Cumplimiento**<br>*(Leyes, normativas y marcos internacionales)* | • **Protección de datos personales**<br>• **Clasificación de riesgo legal**<br>• **Propiedad intelectual y licencias**<br>• **Estándares internacionales** | • **Leyes locales y globales:** Cumplir con la legislación de protección de datos de **México** (y el RGPD si hay usuarios en Europa).<br>• **Ley de IA Europea (EU AI Act):** Evaluar obligaciones según el uso real (analizar reseñas tiene menor riesgo que evaluar personas).<br>• **Marcos de referencia:** Aplicar **NIST AI RMF** (gestión de riesgos), **ISO/IEC 42001** (gestión organizacional), **OECD/UNESCO** (principios éticos) e **IEEE 7000** (ética desde el diseño).<br>• **Licencias:** Verificar los permisos legales del modelo y los datos originales antes de distribuirlos o darles uso comercial. |
 | **4. Seguridad**<br>*(Protección técnica y privacidad de datos)* | • **Tratamiento de datos personales** *(Riesgo Alto)*<br>• **Ataques contra la API** *(Riesgo Alto)*<br>• **Vulnerabilidades de software y accesos** | • **Privacidad desde el diseño:** Minimizar datos, no almacenar mensajes privados innecesariamente, anonimizar registros y fijar plazos de borrado.<br>• **Protección de API y red:** Autenticación, autorización, validación de entradas, límites de solicitudes (cuotas) y cifrado en tránsito (`HTTPS`).<br>• **Accesos e integridad:** Guardar contraseñas en *Secret Manager* con mínimos privilegios, actualizar contenedores y verificar que los pesos del modelo no hayan sido alterados. |
 
+| Marco | Naturaleza | Aplicabilidad | Acción recomendada |
+| :--- | :--- | :--- | :--- |
+| **Legislación mexicana de protección de datos personales** | Obligatoria cuando corresponda | Tratamiento de datos personales bajo jurisdicción mexicana | Evaluar finalidad, base legal, avisos de privacidad, seguridad y derechos |
+| **RGPD** | Reglamento obligatorio | Tratamientos comprendidos en su ámbito territorial y material | Evaluar bases jurídicas, derechos, transferencias y medidas de protección |
+| **EU AI Act** | Reglamento obligatorio según ámbito y clasificación | Sistemas de IA sujetos a sus disposiciones | Determinar finalidad, rol del operador y clasificación de riesgo |
+| **NIST AI RMF** | Marco voluntario | Gestión de riesgos de IA | Aplicar Govern, Map, Measure y Manage |
+| **ISO/IEC 42001** | Estándar voluntario certificable | Sistema de gestión organizacional de IA | Documentar políticas, responsabilidades y mejora continua |
+| **Principios OECD/UNESCO** | Directrices | Buenas prácticas de IA responsable | Integrar transparencia, equidad y responsabilidad |
 _________________________________________________________________________________________________________________________________________________
 
 ## Plan de escalamiento responsable
